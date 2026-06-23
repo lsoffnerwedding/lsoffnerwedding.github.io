@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wedding Day Timeline</title>
+<style>
+  :root{
+    --bg:#faf7f2; --panel:#ffffff; --ink:#3a3530; --muted:#8a8178;
+    --line:#e7e0d6; --accent:#9a7b62; --row:#fcfaf6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  header{padding:26px 28px 14px;text-align:center;border-bottom:1px solid var(--line);background:var(--panel)}
+  header h1{margin:0;font-family:"Georgia","Times New Roman",serif;font-weight:500;letter-spacing:.5px;font-size:30px}
+  header p{margin:6px 0 0;color:var(--muted);font-size:14px}
+  .wrap{padding:18px 22px 60px;max-width:1400px;margin:0 auto}
+  .chipbar{position:sticky;top:0;z-index:30;background:var(--bg);padding:14px 0 12px;
+    display:flex;flex-wrap:wrap;gap:9px;align-items:center;border-bottom:1px solid var(--line);margin-bottom:6px}
+  .chipbar .lbl,.panbar .lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-right:4px}
+  .chip{cursor:pointer;border:1.5px solid var(--cc);color:var(--cc);background:transparent;
+    padding:6px 13px;border-radius:999px;font-size:13px;font-weight:600;user-select:none;
+    transition:all .15s;display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+  .chip .dot{width:9px;height:9px;border-radius:50%;background:var(--cc)}
+  .chip:hover{background:var(--cc);color:#fff}.chip:hover .dot{background:#fff}
+  .chip.active{background:var(--cc);color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+  .chip.active .dot{background:#fff}
+  .chip.clear{border-color:var(--muted);color:var(--muted);font-weight:500}
+  .chip.clear:hover{background:var(--muted);color:#fff}
+
+  .panbar{display:flex;align-items:center;gap:12px;padding:10px 2px 4px}
+  .panbar input[type=range]{flex:1;accent-color:var(--accent);height:6px;cursor:pointer}
+  .panbar #panread{font-size:12.5px;color:var(--accent);font-weight:600;min-width:120px;text-align:right}
+
+  .gantt{margin-top:8px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel)}
+  .scroll{overflow-x:auto;cursor:grab}
+  .scroll.dragging{cursor:grabbing;user-select:none}
+  .scroll.dragging .bar,.scroll.dragging .ms{cursor:grabbing}
+  .grid{min-width:calc(var(--labelW) + var(--trackW));}
+  .axis{display:flex;position:sticky;top:46px;z-index:20;background:var(--panel);border-bottom:1px solid var(--line)}
+  .axis .lblpad{flex:0 0 var(--labelW);position:sticky;left:0;background:var(--panel);z-index:21;border-right:1px solid var(--line)}
+  .axis .track{position:relative;height:30px;width:var(--trackW)}
+  .axis .hr{position:absolute;top:0;height:30px;border-left:1px solid var(--line);font-size:11px;color:var(--muted);padding-left:4px;line-height:30px}
+  .grp{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);
+    padding:10px 14px 4px;background:var(--panel);border-top:1px solid var(--line)}
+  .row{display:flex;align-items:stretch;border-top:1px solid var(--line);position:relative;transition:opacity .18s}
+  .row:nth-child(even){background:var(--row)}
+  .row:hover{background:#f3ede3}
+  .row .name{flex:0 0 var(--labelW);position:sticky;left:0;z-index:10;background:inherit;
+    padding:9px 12px;font-size:13.5px;border-right:1px solid var(--line);display:flex;align-items:center;gap:8px}
+  .row.child .name{padding-left:30px;font-size:13px;color:#564f47}
+  .row.parent .name .item{font-weight:700;color:#2f2a25}
+  .row.parent{background:#f1e9dc}
+  .row.parent:hover{background:#ece2d2}
+  .bar.summary{height:9px;top:15px;border-radius:2px;box-shadow:none}
+  .bar.summary::before,.bar.summary::after{content:'';position:absolute;bottom:-5px;width:0;height:0;
+    border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid currentColor}
+  .bar.summary::before{left:0}.bar.summary::after{right:0}
+  .row .name .item{font-weight:500}
+  .track{position:relative;width:var(--trackW);min-height:38px}
+  .track .hrline{position:absolute;top:0;bottom:0;border-left:1px solid #f0ebe2}
+  .bar{position:absolute;top:9px;height:20px;border-radius:6px;display:flex;align-items:center;
+    padding:0 8px;font-size:11px;color:#fff;white-space:nowrap;overflow:hidden;cursor:default;
+    box-shadow:0 1px 3px rgba(0,0,0,.18)}
+  .barlbl{position:absolute;top:11px;font-size:10.5px;color:#564f47;white-space:nowrap;font-weight:600;cursor:default}
+  .barlbl.left{transform:translateX(-100%);padding-right:6px}
+  .barlbl.right{padding-left:6px}
+  .ms{position:absolute;top:8px;width:14px;height:14px;transform:translateX(-7px) rotate(45deg);
+    border-radius:3px;cursor:default;box-shadow:0 1px 3px rgba(0,0,0,.25);border:2px solid #fff}
+  .ms-lbl{position:absolute;top:6px;font-size:10.5px;color:#564f47;white-space:nowrap;font-weight:600}
+  .dimmed{opacity:.22}
+  .lit{box-shadow:0 0 0 2px var(--accent),0 2px 10px rgba(0,0,0,.18)!important;z-index:5}
+  .swatches{display:flex;gap:3px;margin-left:auto;padding-right:10px}
+  .sw{width:8px;height:8px;border-radius:50%}
+
+  #tip{position:fixed;z-index:100;pointer-events:none;background:#322d28;color:#fff;padding:10px 12px;
+    border-radius:8px;font-size:12.5px;max-width:280px;box-shadow:0 6px 24px rgba(0,0,0,.3);
+    opacity:0;transition:opacity .12s;line-height:1.45}
+  #tip b{color:#f0c9a8}
+  #tip .t-loc{margin-bottom:5px}
+  .legend{font-size:12px;color:var(--muted);margin-top:14px;text-align:center}
+  @media print{.chipbar,.panbar{position:static}.axis{position:static}.row .name,.axis .lblpad{position:static}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Wedding Day Timeline</h1>
+  <p>Run sheet for vendors &middot; tap a vendor chip to highlight their items &middot; hover any item for location &amp; notes</p>
+</header>
+<div class="wrap">
+  <div class="chipbar" id="chipbar"><span class="lbl">Filter&nbsp;vendors</span></div>
+  <div class="panbar"><span class="lbl">Pan&nbsp;timeline</span>
+    <input type="range" id="pan" min="0" max="100" value="0" step="0.1">
+    <span id="panread"></span></div>
+  <div class="gantt"><div class="scroll" id="scroll"><div class="grid" id="grid"></div></div></div>
+  <div class="legend">Diamonds &#9670; mark single moments; bars show duration. Drag the slider to pan; short bars show their time to the left. Built from your Timeline spreadsheet.</div>
+</div>
+<div id="tip"></div>
+<script>
+const DATA = {"tasks": [{"id": 1, "parent": null, "item": "Bridal Party Preperation (Hair & Makeup)", "labels": ["Hair & Makeup"], "start": 420, "end": 810, "startRaw": "07:00", "endRaw": "13:30", "notes": "", "location": "Bridal Suite"}, {"id": 1.1, "parent": 1, "item": "Bride Brunch", "labels": ["The Diary"], "start": 630, "end": null, "startRaw": "10:30", "endRaw": null, "notes": "", "location": "Bridal Suite"}, {"id": 1.2, "parent": 1, "item": "Photos/Videos - Hair & Makeup", "labels": ["Photography", "Videography", "Hair & Makeup"], "start": 690, "end": 750, "startRaw": "11:30", "endRaw": "12:30", "notes": "Hair & Makeup finalising as Photographer/Videographer arrive.", "location": "Bridal Suite"}, {"id": 1.3, "parent": 1, "item": "(Buffer) Finalise Bridal Part Hair & Makeup", "labels": ["Hair & Makeup"], "start": 750, "end": 810, "startRaw": "12:30", "endRaw": "13:30", "notes": "While Samantha is at Private Vows", "location": "Bridal Suite"}, {"id": 2, "parent": null, "item": "Lindsay Preperation", "labels": ["Photography", "Videography"], "start": 630, "end": 690, "startRaw": "10:30", "endRaw": "11:30", "notes": "", "location": "TBC"}, {"id": 3, "parent": null, "item": "First Look & Private Vows", "labels": ["Photography", "Videography"], "start": 750, "end": 810, "startRaw": "12:30", "endRaw": "13:30", "notes": "", "location": "The Olive Grove"}, {"id": 3.1, "parent": 3, "item": "Photos/Videos - Private", "labels": ["Photography", "Videography"], "start": 750, "end": 810, "startRaw": "12:30", "endRaw": "13:30", "notes": "", "location": "The Olive Grove"}, {"id": 4, "parent": null, "item": "Photos/Videos - Family & Friends", "labels": ["Photography", "Videography"], "start": 810, "end": 840, "startRaw": "13:30", "endRaw": "14:00", "notes": "", "location": "The Olive Grove"}, {"id": 6, "parent": null, "item": "Guests Arrive", "labels": ["The Diary"], "start": 840, "end": 870, "startRaw": "14:00", "endRaw": "14:30", "notes": "", "location": "The Old Dairy"}, {"id": 6.1, "parent": 6, "item": "Bus (For Arrivals)", "labels": ["Bus"], "start": 850, "end": null, "startRaw": "14:10", "endRaw": null, "notes": "", "location": "The Old Dairy"}, {"id": 8, "parent": null, "item": "Ceremony", "labels": ["The Diary", "Photography", "Videography", "Celebrant"], "start": 840, "end": 900, "startRaw": "14:00", "endRaw": "15:00", "notes": "", "location": "The View"}, {"id": 8.1, "parent": 8, "item": "Ceremony - Setup", "labels": ["The Diary", "Photography", "Videography", "Celebrant"], "start": 840, "end": 870, "startRaw": "14:00", "endRaw": "14:30", "notes": "", "location": "The View"}, {"id": 8.2, "parent": 8, "item": "Ceremony - Main", "labels": ["The Diary", "Photography", "Videography", "Celebrant"], "start": 870, "end": 900, "startRaw": "14:30", "endRaw": "15:00", "notes": "", "location": "The View"}, {"id": 10, "parent": null, "item": "Cocktail Hour", "labels": ["The Diary"], "start": 900, "end": 1050, "startRaw": "15:00", "endRaw": "17:30", "notes": "", "location": "The Old Dairy"}, {"id": 10.1, "parent": 10, "item": "Sparkling Tower", "labels": ["The Diary"], "start": 945, "end": null, "startRaw": "15:45", "endRaw": null, "notes": "", "location": "The Old Dairy"}, {"id": 10.2, "parent": 10, "item": "Beverage Service", "labels": ["The Diary"], "start": 930, "end": 1050, "startRaw": "15:30", "endRaw": "17:30", "notes": "", "location": "The Old Dairy"}, {"id": 10.3, "parent": 10, "item": "Canapes", "labels": ["The Diary"], "start": 945, "end": 1050, "startRaw": "15:45", "endRaw": "17:30", "notes": "", "location": "The Old Dairy"}, {"id": 10.4, "parent": 10, "item": "Parent Speeches", "labels": ["The Diary", "Photography", "Videography"], "start": 960, "end": null, "startRaw": "16:00", "endRaw": null, "notes": "", "location": "The Old Dairy"}, {"id": 11, "parent": null, "item": "Photos/Videos - Portait", "labels": [], "start": 1020, "end": 1065, "startRaw": "17:00", "endRaw": "17:45", "notes": "1736 Sunset", "location": ""}, {"id": 12, "parent": null, "item": "Reception", "labels": ["The Diary", "Photography", "Videography"], "start": 1050, "end": 1380, "startRaw": "17:30", "endRaw": "23:00", "notes": "", "location": "Main Venue"}, {"id": 12.1, "parent": 12, "item": "Entree", "labels": ["The Diary", "Photography", "Videography"], "start": 1095, "end": null, "startRaw": "18:15", "endRaw": null, "notes": "", "location": "Main Venue"}, {"id": 12.1, "parent": 12, "item": "Main", "labels": ["The Diary", "Photography", "Videography"], "start": 1155, "end": null, "startRaw": "19:15", "endRaw": null, "notes": "", "location": "Main Venue"}, {"id": 12.1, "parent": 12, "item": "Bride & Groom - Entrance", "labels": ["The Diary", "Photography", "Videography"], "start": 1080, "end": null, "startRaw": "18:00", "endRaw": null, "notes": "", "location": "Main Venue"}, {"id": 12.1, "parent": 12, "item": "Bride & Groom - Speech", "labels": ["The Diary", "Photography", "Videography"], "start": 1080, "end": null, "startRaw": "18:00", "endRaw": null, "notes": "", "location": "Main Venue"}, {"id": 12.1, "parent": 12, "item": "Dancefloor Kicks Off", "labels": ["The Diary", "Photography", "Videography", "Music & DJ"], "start": 1195, "end": null, "startRaw": "19:55", "endRaw": null, "notes": "", "location": "Main Venue"}, {"id": 12.1, "parent": 12, "item": "Cake Cutting (Tiramisu Dusting)", "labels": ["The Diary", "Photography", "Videography"], "start": 1200, "end": null, "startRaw": "20:00", "endRaw": null, "notes": "", "location": "Main Venue"}, {"id": 12.1, "parent": 12, "item": "Bus (For Departure)", "labels": ["Bus"], "start": 630, "end": null, "startRaw": "10:30", "endRaw": null, "notes": "", "location": "Main Venue"}], "vendors": [{"id": null, "parent": null, "item": "The Diary (Venue)", "labels": [], "start": 420, "end": 1380, "startRaw": "07:00", "endRaw": "23:00", "notes": "", "location": ""}, {"id": null, "parent": null, "item": "Bluvale Films (Videographer)", "labels": [], "start": 630, "end": 1230, "startRaw": "10:30", "endRaw": "20:30", "notes": "", "location": ""}, {"id": null, "parent": null, "item": "Sarah Bradford (Photography)", "labels": [], "start": 630, "end": 1230, "startRaw": "10:30", "endRaw": "20:30", "notes": "", "location": ""}, {"id": null, "parent": null, "item": "Hannah Meagan (Illustrator)", "labels": [], "start": null, "end": null, "startRaw": null, "endRaw": null, "notes": "", "location": ""}, {"id": null, "parent": null, "item": "Natalie Lucas (Hair & Makeup)", "labels": [], "start": 420, "end": 810, "startRaw": "07:00", "endRaw": "13:30", "notes": "", "location": ""}, {"id": null, "parent": null, "item": "Tim & Fahim (Music & DJ)", "labels": [], "start": null, "end": null, "startRaw": null, "endRaw": null, "notes": "", "location": ""}, {"id": null, "parent": null, "item": "Samantha Jayne (Celebrant)", "labels": [], "start": null, "end": null, "startRaw": null, "endRaw": null, "notes": "", "location": ""}], "chips": ["The Diary", "Hair & Makeup", "Photography", "Videography", "Celebrant", "Music & DJ", "Bus"], "vendorNames": {"The Diary": "The Diary (Venue)", "Hair & Makeup": "Natalie Lucas (Hair & Makeup)", "Photography": "Sarah Bradford (Photography)", "Videography": "Bluvale Films (Videographer)", "Celebrant": "Samantha Jayne (Celebrant)", "Music & DJ": "Tim & Fahim (Music & DJ)", "Bus": "Transport / Bus"}, "colors": {"The Diary": "#7c6f5b", "Hair & Makeup": "#c98aa6", "Photography": "#5b8fa6", "Videography": "#6a7fb0", "Celebrant": "#9a7bb5", "Music & DJ": "#c98f5b", "Bus": "#6fa68a"}};
+const PXPERMIN = 1.85, START_MIN = 7*60, END_MIN = 23*60+30;
+const trackW = (END_MIN-START_MIN)*PXPERMIN;
+document.documentElement.style.setProperty('--labelW','260px');
+document.documentElement.style.setProperty('--trackW', trackW+'px');
+const xOf = m => (m-START_MIN)*PXPERMIN;
+const fmtMin = m => { m=Math.max(0,Math.round(m)); const h=Math.floor(m/60),mm=m%60; return (h<10?'0':'')+h+':'+(mm<10?'0':'')+mm; };
+
+// chips
+const cb=document.getElementById('chipbar'); const active=new Set();
+DATA.chips.forEach(c=>{
+  const el=document.createElement('span'); el.className='chip'; el.style.setProperty('--cc',DATA.colors[c]);
+  el.innerHTML=`<span class="dot"></span>${c}`; el.title=DATA.vendorNames[c]||c;
+  el.onclick=()=>{el.classList.toggle('active');active.has(c)?active.delete(c):active.add(c);apply();};
+  cb.appendChild(el);
+});
+const clr=document.createElement('span'); clr.className='chip clear'; clr.textContent='Clear';
+clr.onclick=()=>{active.clear();document.querySelectorAll('.chip.active').forEach(c=>c.classList.remove('active'));apply();};
+cb.appendChild(clr);
+
+const parentIds=new Set(DATA.tasks.filter(t=>t.parent!=null).map(t=>t.parent));
+const grid=document.getElementById('grid');
+const axis=document.createElement('div'); axis.className='axis'; axis.innerHTML=`<div class="lblpad"></div>`;
+const at=document.createElement('div'); at.className='track';
+for(let m=START_MIN;m<=END_MIN;m+=60){
+  const hr=document.createElement('div'); hr.className='hr'; hr.style.left=xOf(m)+'px'; hr.textContent=fmtMin(m); at.appendChild(hr);
+}
+{const hr=document.createElement('div');hr.className='hr';hr.style.left=xOf(END_MIN)+'px';hr.textContent=fmtMin(END_MIN);at.appendChild(hr);}
+axis.appendChild(at); grid.appendChild(axis);
+
+function hrlines(track){for(let m=START_MIN;m<=END_MIN;m+=60){const l=document.createElement('div');l.className='hrline';l.style.left=xOf(m)+'px';track.appendChild(l);}}
+
+function makeRow(t,child,group){
+  const row=document.createElement('div'); row.className='row'+(child?' child':'')+(group?' parent':'');
+  row.dataset.labels=JSON.stringify(t.labels);
+  const name=document.createElement('div'); name.className='name';
+  const sw=document.createElement('div'); sw.className='swatches';
+  t.labels.forEach(l=>{const s=document.createElement('span');s.className='sw';s.style.background=DATA.colors[l]||'#bbb';sw.appendChild(s);});
+  name.innerHTML=`<span class="item">${t.item||''}</span>`; name.appendChild(sw); row.appendChild(name);
+  const track=document.createElement('div'); track.className='track'; hrlines(track);
+  const primary=t.labels[0]?DATA.colors[t.labels[0]]:'#a99';
+  if(t.start!=null && t.end!=null && t.end>t.start){
+    const w=Math.max(8,(t.end-t.start)*PXPERMIN);
+    const bar=document.createElement('div'); bar.className='bar el'+(group?' summary':''); bar.style.left=xOf(t.start)+'px';
+    bar.style.width=w+'px'; bar.style.background=primary; if(group)bar.style.color=primary; row._track=track;
+    const txt=`${t.startRaw}–${t.endRaw}`;
+    const needed=txt.length*6.0+14;
+    if(group || w<needed){
+      const bl=document.createElement('div'); bl.className='barlbl'; bl.textContent=txt;
+      if(xOf(t.start) > 90){ bl.classList.add('left'); bl.style.left=xOf(t.start)+'px'; }
+      else { bl.classList.add('right'); bl.style.left=xOf(t.end)+'px'; }
+      track.appendChild(bl);
+    } else bar.textContent=txt;
+    track.appendChild(bar);
+  } else if(t.start!=null){
+    const ms=document.createElement('div'); ms.className='ms el'; ms.style.left=xOf(t.start)+'px'; ms.style.background=primary; track.appendChild(ms);
+    const lab=document.createElement('div'); lab.className='ms-lbl'; lab.style.left=(xOf(t.start)+12)+'px'; lab.textContent=t.startRaw; track.appendChild(lab);
+  } else {
+    const lab=document.createElement('div'); lab.className='ms-lbl'; lab.style.left='6px'; lab.style.color='#a39a8e'; lab.textContent='Time TBC'; track.appendChild(lab);
+  }
+  row.appendChild(track);
+  row.addEventListener('mousemove',e=>showTip(e,t));
+  row.addEventListener('mouseleave',hideTip);
+  return row;
+}
+
+DATA.tasks.forEach(t=>grid.appendChild(makeRow(t,t.parent!=null,parentIds.has(t.id))));
+const vg=document.createElement('div'); vg.className='grp'; vg.textContent='Vendor on-site windows'; grid.appendChild(vg);
+DATA.vendors.forEach(v=>{
+  const lbl=guessVendorLabel(v.item);
+  const t={item:v.item,labels:lbl?[lbl]:[],start:v.start,end:v.end,startRaw:v.startRaw,endRaw:v.endRaw,notes:v.notes,location:v.location};
+  grid.appendChild(makeRow(t,false,false));
+});
+function guessVendorLabel(name){const n=name.toLowerCase();
+  if(n.includes('diary'))return'The Diary';if(n.includes('hair'))return'Hair & Makeup';
+  if(n.includes('photo'))return'Photography';if(n.includes('video')||n.includes('films'))return'Videography';
+  if(n.includes('celebrant'))return'Celebrant';if(n.includes('music')||n.includes('dj'))return'Music & DJ';return null;}
+
+function apply(){
+  const any=active.size>0;
+  document.querySelectorAll('.row').forEach(row=>{
+    const labels=JSON.parse(row.dataset.labels||'[]'); const match=labels.some(l=>active.has(l));
+    row.querySelectorAll('.el').forEach(el=>{el.classList.toggle('dimmed',any&&!match);el.classList.toggle('lit',any&&match);});
+    row.style.opacity=(any&&!match)?.45:1;
+  });
+}
+
+// pan slider <-> horizontal scroll sync
+const scroll=document.getElementById('scroll'), pan=document.getElementById('pan'), panread=document.getElementById('panread');
+function maxScroll(){return Math.max(1,scroll.scrollWidth-scroll.clientWidth);}
+function updateRead(){const leftMin=START_MIN+(scroll.scrollLeft/PXPERMIN);panread.textContent='Viewing from '+fmtMin(leftMin);}
+pan.addEventListener('input',()=>{scroll.scrollLeft=(pan.value/100)*maxScroll();updateRead();});
+scroll.addEventListener('scroll',()=>{const v=scroll.scrollLeft/maxScroll()*100;if(Math.abs(v-pan.value)>0.2)pan.value=v;updateRead();});
+window.addEventListener('resize',updateRead);
+updateRead();
+
+// click-and-drag to pan the timeline
+let dragging=false,dragMoved=false,startX=0,startScroll=0;
+scroll.addEventListener('pointerdown',e=>{
+  if(e.target.closest('input'))return;
+  dragging=true;dragMoved=false;startX=e.clientX;startScroll=scroll.scrollLeft;
+  scroll.classList.add('dragging');scroll.setPointerCapture(e.pointerId);hideTip();
+});
+scroll.addEventListener('pointermove',e=>{
+  if(!dragging)return;
+  const dx=e.clientX-startX;
+  if(Math.abs(dx)>3)dragMoved=true;
+  scroll.scrollLeft=startScroll-dx;updateRead();
+  const v=scroll.scrollLeft/maxScroll()*100;pan.value=v;
+});
+function endDrag(e){if(!dragging)return;dragging=false;scroll.classList.remove('dragging');try{scroll.releasePointerCapture(e.pointerId);}catch(_){}}
+scroll.addEventListener('pointerup',endDrag);
+scroll.addEventListener('pointercancel',endDrag);
+scroll.addEventListener('pointerleave',endDrag);
+
+const tip=document.getElementById('tip');
+function showTip(e,t){
+  if(dragging){hideTip();return;}
+  const loc=t.location,note=t.notes; if(!loc&&!note){hideTip();return;}
+  let h=''; if(loc)h+=`<div class="t-loc"><b>\u{1F4CD} ${loc}</b></div>`; if(note)h+=`<div class="t-note">${note}</div>`;
+  tip.innerHTML=h; tip.style.opacity=1;
+  let x=e.clientX+16,y=e.clientY+16;
+  if(x+290>window.innerWidth)x=e.clientX-290; if(y+100>window.innerHeight)y=e.clientY-90;
+  tip.style.left=x+'px'; tip.style.top=y+'px';
+}
+function hideTip(){tip.style.opacity=0;}
+</script>
+</body>
+</html>
